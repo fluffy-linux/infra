@@ -62,6 +62,18 @@ variable "ctypes_sh_commit" {
   default = "ca66ae5299e12407a6cae98be4a01b45b648e24d"
 }
 
+# ORAS for publishing to the binary cache (GHCR), and its release checksum
+# (oras_<version>_checksums.txt).
+variable "oras_version" {
+  type    = string
+  default = "1.3.6"
+}
+
+variable "oras_sha256" {
+  type    = string
+  default = "66fb0ad7206f3f6fa77ed5b552049d364ccf4b50b1684554f731f76302b52ca0"
+}
+
 source "azure-arm" "agent" {
   use_azure_cli_auth = true
   subscription_id    = var.subscription_id
@@ -104,9 +116,13 @@ build {
   }
 
   provisioner "shell" {
-    execute_command  = "chmod +x {{ .Path }}; {{ .Vars }} sudo -E bash {{ .Path }}"
-    environment_vars = ["CTYPES_SH_COMMIT=${var.ctypes_sh_commit}"]
-    script           = "${path.root}/provision.sh"
+    execute_command = "chmod +x {{ .Path }}; {{ .Vars }} sudo -E bash {{ .Path }}"
+    environment_vars = [
+      "CTYPES_SH_COMMIT=${var.ctypes_sh_commit}",
+      "ORAS_VERSION=${var.oras_version}",
+      "ORAS_SHA256=${var.oras_sha256}",
+    ]
+    script = "${path.root}/provision.sh"
   }
 
   # Generalize, as Azure requires for an image (Packer's azure-arm docs).
