@@ -36,8 +36,10 @@ resource "google_project_service" "services" {
 #   github-mirror-token    pushes the forks (the mirror agent, later)
 #   buildkite-terraform-token  Terraform's own token for buildkite.tf
 #                          (pipelines and clusters, read and write)
+#   github-terraform-token Terraform's own token for github.tf (admin:org,
+#                          repo; not delete_repo)
 locals {
-  secrets = ["buildkite-agent-token", "buildkite-api-token", "buildkite-terraform-token", "ghcr-token", "github-mirror-token"]
+  secrets = ["buildkite-agent-token", "buildkite-api-token", "buildkite-terraform-token", "ghcr-token", "github-mirror-token", "github-terraform-token"]
 }
 
 resource "google_secret_manager_secret" "secrets" {

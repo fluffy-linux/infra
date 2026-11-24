@@ -25,6 +25,10 @@ terraform {
       source  = "buildkite/buildkite"
       version = "~> 1.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
 }
 
@@ -44,4 +48,11 @@ provider "google" {
 #   BUILDKITE_API_TOKEN="$(gcloud secrets versions access latest --secret buildkite-terraform-token)"
 provider "buildkite" {
   organization = "fluffy-linux"
+}
+
+# GitHub, with a classic token that has admin:org and repo but not
+# delete_repo (Secret Manager: github-terraform-token), in the environment:
+#   GITHUB_TOKEN="$(gcloud secrets versions access latest --secret github-terraform-token)"
+provider "github" {
+  owner = "fluffy-linux"
 }
