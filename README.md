@@ -1,9 +1,15 @@
-# Fluffy's CI on GCP
+# Fluffy's CI infrastructure
+
+The infrastructure behind [Fluffy Linux](https://github.com/fluffy-linux/fluffy)'s
+CI: GCP (agents, scaler, secrets, budget), Buildkite (cluster, queues,
+pipelines) and the agent image.  `main` is what is deployed: apply from it,
+after merging.  The commands below run from this repository's root.
 
 Fluffy's Buildkite CI agents run on GCP spot VMs, in project
-`fluffy-linux`, regions `us-east4` and `us-east1` (the scaler and the
-rest are in `us-east4`).  CI ran on Azure until 2026-11-23; that setup is
-in the git history.
+`fluffy-linux`, regions `us-east4` and `us-east1`; the scaler runs in
+`us-central1`.  This repository was split out of `fluffy/infra/` on
+2026-11-24, history included; CI ran on Azure until 2026-11-23, and that
+setup is in the history too.
 
 No credentials live in this repository.  Terraform and Packer use your
 `gcloud` login's access token, passed in the environment.  The VMs use
@@ -63,8 +69,8 @@ steps. First, everything but the template and the scaler:
 ```
 export GOOGLE_OAUTH_ACCESS_TOKEN="$(gcloud auth print-access-token)"
 export BUILDKITE_API_TOKEN="$(gcloud secrets versions access latest --secret buildkite-terraform-token)"
-terraform -chdir=infra/terraform init
-terraform -chdir=infra/terraform apply \
+terraform -chdir=terraform init
+terraform -chdir=terraform apply \
     -target=google_project_service.services \
     -target=google_secret_manager_secret.secrets \
     -target=google_secret_manager_secret_iam_member.agent \
@@ -91,9 +97,9 @@ The secrets are:
 Then the image, then everything else:
 
 ```
-packer init infra/packer
-PKR_VAR_access_token="$(gcloud auth print-access-token)" packer build infra/packer
-terraform -chdir=infra/terraform apply
+packer init packer
+PKR_VAR_access_token="$(gcloud auth print-access-token)" packer build packer
+terraform -chdir=terraform apply
 ```
 
 A new image needs no apply: each VM boots the family's newest image when

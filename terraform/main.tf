@@ -27,7 +27,7 @@ resource "google_project_service" "services" {
 # --- Secrets ---------------------------------------------------------------
 
 # The secrets themselves; their values are added out of band, piped into
-# `gcloud secrets versions add NAME --data-file=-` (infra/README.md), so
+# `gcloud secrets versions add NAME --data-file=-` (README.md), so
 # they never appear in Terraform's state or on a command line.
 #   buildkite-agent-token  agents register with it; the scaler reads
 #                          Buildkite's agent metrics with it

@@ -1,5 +1,5 @@
 # The CI agents: spot VMs made from one instance template, booted from the
-# Packer image (infra/packer).  Nothing runs until the scaler
+# Packer image (packer).  Nothing runs until the scaler
 # (scaler.tf) creates VMs for waiting jobs; each agent takes jobs back to
 # back, exits after 10 idle minutes and deletes its own VM.
 

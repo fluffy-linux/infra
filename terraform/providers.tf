@@ -1,8 +1,8 @@
 terraform {
   required_version = ">= 1.6"
 
-  # State in a GCS bucket made once with gcloud (infra/README.md):
-  #   terraform -chdir=infra/terraform init
+  # State in a GCS bucket made once with gcloud (README.md):
+  #   terraform -chdir=terraform init
   backend "gcs" {
     bucket = "fluffy-linux-tfstate"
     prefix = "ci"

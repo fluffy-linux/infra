@@ -1,0 +1,14 @@
+# Terraform's local working files and state (the state lives in GCS).
+**/.terraform/
+*.tfstate
+*.tfstate.*
+# Settings kept out of the repository (terraform.tfvars holds the billing
+# account), but examples are fine.
+*.tfvars
+!*.example.tfvars
+crash.log
+__pycache__/
+# Secrets never belong in the repository (they live in Secret Manager).
+*token*.txt
+*.token
+*.secret

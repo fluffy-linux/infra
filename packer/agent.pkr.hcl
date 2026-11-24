@@ -8,8 +8,8 @@
 # Build with your gcloud login, its token passed in the environment (never
 # on the command line):
 #
-#   packer init infra/packer
-#   PKR_VAR_access_token="$(gcloud auth print-access-token)" packer build infra/packer
+#   packer init packer
+#   PKR_VAR_access_token="$(gcloud auth print-access-token)" packer build packer
 
 packer {
   required_plugins {
@@ -79,7 +79,7 @@ source "googlecompute" "agent" {
 
   image_name        = "fluffy-ci-agent-${local.stamp}"
   image_family      = "fluffy-ci-agent"
-  image_description = "Fluffy Linux CI agent (infra/packer)"
+  image_description = "Fluffy Linux CI agent (packer)"
   image_labels = {
     purpose = "fluffy-ci-agent-image"
   }

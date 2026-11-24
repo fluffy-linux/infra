@@ -1,4 +1,4 @@
-# The scaler: a Cloud Function (infra/scaler) that starts agent VMs for
+# The scaler: a Cloud Function (scaler) that starts agent VMs for
 # waiting jobs, called every minute by Cloud Scheduler.  terraform apply
 # deploys its code whenever it changes (the source archive's checksum names
 # the uploaded object).
