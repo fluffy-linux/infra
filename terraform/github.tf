@@ -53,3 +53,36 @@ resource "github_repository_custom_property" "upstream" {
   property_type  = "url"
   property_value = [each.value.upstream]
 }
+
+# The organization's own repositories (not forks): their settings, under
+# the same guards.
+resource "github_repository" "own" {
+  for_each = {
+    fluffy = "Fluffy Linux"
+    infra  = "The infrastructure behind Fluffy"
+  }
+  name        = each.key
+  description = each.value
+  visibility  = "public"
+
+  has_issues    = false
+  has_projects  = false
+  has_wiki      = false
+  has_downloads = false
+
+  archive_on_destroy = true
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# No GitHub Actions anywhere in the organization: CI is Buildkite, and
+# forks must not run upstream workflows.
+resource "github_actions_organization_permissions" "org" {
+  enabled_repositories = "none"
+}
+
+# Pull requests are off too, but the provider can't set that yet (GitHub
+# added the setting in February 2026): ../scripts/no-pull-requests does,
+# for every repository here, after an apply.

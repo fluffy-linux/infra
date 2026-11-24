@@ -28,6 +28,14 @@ service accounts, and read their secrets from Secret Manager.
     else, because builds run upstream code;
   - a subnet and a spot instance template per agent region;
   - the scaler;
+  - GitHub (`github.tf`): every fork (`repos.auto.tfvars.json`: its git
+    upstream or, for imports that aren't git, its source), with its
+    description, settings and `upstream` property; the organization's own
+    repositories, fluffy and this one; and Actions, off for the whole
+    organization. Pull requests are off everywhere too, by
+    `scripts/no-pull-requests`, since the provider can't set that yet.
+    A new fork: add it to `repos.auto.tfvars.json`, apply, run
+    `scripts/no-pull-requests`, then `mkmirror.sh`;
   - Buildkite (`buildkite.tf`): the cluster, the queues `mufasa` and
     `mirror`, the pipelines `fluffy` and `mirror`, and the mirror's
     schedule. The agent token isn't managed here, so its value never

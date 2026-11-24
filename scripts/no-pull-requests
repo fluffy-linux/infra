@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Turns pull requests off in every fluffy-linux repository Terraform knows:
+# the forks (terraform/repos.auto.tfvars.json) and the organization's own,
+# fluffy and infra.  GitHub has had the setting since February 2026, but
+# the Terraform provider can't set it yet, so this does, after an apply.
+# Only repositories that have pull requests on are changed.
+#
+#   GITHUB_TOKEN="$(gcloud secrets versions access latest --secret github-terraform-token)" scripts/no-pull-requests
+#
+# The token reaches curl as a config on stdin, never on the command line.
+set -euo pipefail
+
+: "${GITHUB_TOKEN:?the Terraform GitHub token, from Secret Manager}"
+cd "$(dirname "$0")/.."
+
+api() {
+    printf 'header = "Authorization: Bearer %s"\nheader = "Accept: application/vnd.github+json"\n' "$GITHUB_TOKEN" |
+        curl -fsS -K - "$@"
+}
+
+repos=$(python3 -I -c 'import json, sys; print("\n".join(sorted(json.load(open(sys.argv[1]))["repos"])))' terraform/repos.auto.tfvars.json)
+changed=0
+for repo in fluffy infra $repos
+do
+    on=$(api "https://api.github.com/repos/fluffy-linux/$repo" |
+        python3 -I -c 'import json, sys; print(json.load(sys.stdin).get("has_pull_requests"))')
+    if test "$on" = True
+    then
+        api -X PATCH -d '{"has_pull_requests": false}' "https://api.github.com/repos/fluffy-linux/$repo" > /dev/null
+        echo "no-pull-requests: $repo: turned off"
+        changed=$(( changed + 1 ))
+    fi
+done
+echo "no-pull-requests: $changed changed"
