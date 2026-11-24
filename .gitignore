@@ -6,6 +6,8 @@
 # account), but examples are fine.
 *.tfvars
 !*.example.tfvars
+# Committed settings: data Terraform reads automatically (e.g. the repos).
+!*.auto.tfvars.json
 crash.log
 __pycache__/
 # Secrets never belong in the repository (they live in Secret Manager).
