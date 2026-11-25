@@ -109,7 +109,7 @@ resource "buildkite_pipeline" "mirror" {
   repository     = "https://github.com/fluffy-linux/fluffy.git"
   cluster_id     = buildkite_cluster.default.id
   default_branch = "🐶"
-  visibility     = "PRIVATE"
+  visibility     = "PUBLIC"
   allow_rebuilds = true
   steps = chomp(<<-EOT
     steps:
