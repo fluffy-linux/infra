@@ -22,6 +22,10 @@ apt-get -y install --no-install-recommends \
     flex gawk gettext git gnupg gperf gzip libdw-dev libelf-dev libffi-dev libltdl-dev libtool m4 patch \
     perl pkg-config python3 squashfs-tools texinfo xz-utils zlib1g-dev
 
+# QEMU and its UEFI firmware, for steps that boot a Fluffy disk image (the
+# kvm queue's agents, which have /dev/kvm).
+apt-get -y install --no-install-recommends ovmf qemu-system-x86
+
 # swctl runs with /sw/bash/bin/bash, and Fluffy has no /bin/sh: on the host
 # both are the host's bash.
 install -d -m 755 /sw/bash/bin

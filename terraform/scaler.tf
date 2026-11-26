@@ -99,13 +99,18 @@ resource "google_cloudfunctions2_function" "scaler" {
     environment_variables = {
       PROJECT = var.project
       ZONES   = join(",", flatten(values(var.agent_zones)))
-      TEMPLATES = jsonencode(merge([
-        for region, zones in var.agent_zones : {
-          for z in zones : z => google_compute_instance_template.agent[region].name
+      # Each pool's queue, cap, and instance template per zone.
+      POOLS = jsonencode([
+        for name, pool in local.pools : {
+          queue = pool.queue
+          max   = pool.max
+          templates = merge([
+            for region, zones in var.agent_zones : {
+              for z in zones : z => google_compute_instance_template.agent["${name}/${region}"].name
+            }
+          ]...)
         }
-      ]...))
-      QUEUE         = var.buildkite_queue
-      MAX_INSTANCES = tostring(var.agent_max_instances)
+      ])
     }
   }
 

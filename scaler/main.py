@@ -1,16 +1,18 @@
-"""Starts Fluffy's CI agent VMs to meet Buildkite's queue.
+"""Starts Fluffy's CI agent VMs to meet Buildkite's queues.
 
-Called every minute (Cloud Scheduler): read Buildkite's agent metrics and
-start agent VMs until the queue has as many as it needs (busy agents plus
-jobs scheduled and waiting for one), never more than the cap.  It never
+Called every minute (Cloud Scheduler): read Buildkite's agent metrics and,
+for each pool (a queue with its own instance templates and cap), start
+agent VMs until the queue has as many as it needs (busy agents plus jobs
+scheduled and waiting for one), never more than the cap.  A pool that
+can't start one (quota, spot capacity) doesn't stop the others.  It never
 deletes a VM: agents leave on their own, after 10 idle minutes each exits
 and deletes its VM; spot VMs are also deleted when preempted, and every
 agent at its maximum run duration.
 
 Settings (environment, from infra/terraform/scaler.tf):
-  PROJECT, ZONES (comma-separated, tried in turn), TEMPLATES (JSON: each
-  zone's instance template name; one template per region, for its
-  subnet), QUEUE, MAX_INSTANCES
+  PROJECT, ZONES (comma-separated, tried in turn), POOLS (JSON: a list of
+  {queue, max, templates}, templates mapping each zone to its instance
+  template name; one template per pool and region, for its subnet)
 """
 
 import base64
@@ -66,7 +68,7 @@ def _live_agents(google, project, queue):
     return names
 
 
-def _start_agent(google, settings):
+def _start_agent(google, settings, pool):
     """Create one agent VM, in the first zone that takes it.
 
     A zone can refuse at once (an HTTP error) or later, in the operation:
@@ -78,7 +80,7 @@ def _start_agent(google, settings):
     errors = []
     for zone in settings["zones"]:
         template = urllib.parse.quote(
-            f"projects/{project}/global/instanceTemplates/{settings['templates'][zone]}", safe="")
+            f"projects/{project}/global/instanceTemplates/{pool['templates'][zone]}", safe="")
         url = f"{COMPUTE}/projects/{project}/zones/{zone}/instances?sourceInstanceTemplate={template}"
         try:
             op = _request("POST", url, google, {"name": name})
@@ -95,29 +97,33 @@ def _start_agent(google, settings):
     raise RuntimeError("no zone took an agent: " + "; ".join(errors))
 
 
+def _scale_pool(google, settings, metrics, pool):
+    queue = pool["queue"]
+    busy = int(metrics.get("agents", {}).get("queues", {}).get(queue, {}).get("busy", 0))
+    scheduled = int(metrics.get("jobs", {}).get("queues", {}).get(queue, {}).get("scheduled", 0))
+    needed = min(pool["max"], busy + scheduled)
+    live = _live_agents(google, settings["project"], queue)
+    result = {"queue": queue, "busy": busy, "scheduled": scheduled, "live": len(live), "started": []}
+    try:
+        for _ in range(needed - len(live)):
+            result["started"].append(_start_agent(google, settings, pool))
+    except RuntimeError as e:
+        result["error"] = str(e)
+    return result
+
+
 def scale(settings):
     google = _google()
     token = _secret(google, settings["project"], "buildkite-agent-token")
     metrics = _request("GET", BUILDKITE_METRICS, {"Authorization": "Token " + token})
-
-    queue = settings["queue"]
-    busy = int(metrics.get("agents", {}).get("queues", {}).get(queue, {}).get("busy", 0))
-    scheduled = int(metrics.get("jobs", {}).get("queues", {}).get(queue, {}).get("scheduled", 0))
-    needed = min(settings["max"], busy + scheduled)
-    live = _live_agents(google, settings["project"], queue)
-
-    started = [_start_agent(google, settings) for _ in range(needed - len(live))]
-    return {"queue": queue, "busy": busy, "scheduled": scheduled,
-            "live": len(live), "started": started}
+    return [_scale_pool(google, settings, metrics, pool) for pool in settings["pools"]]
 
 
 def settings_from_env():
     return {
         "project": os.environ["PROJECT"],
         "zones": os.environ["ZONES"].split(","),
-        "templates": json.loads(os.environ["TEMPLATES"]),
-        "queue": os.environ["QUEUE"],
-        "max": int(os.environ["MAX_INSTANCES"]),
+        "pools": json.loads(os.environ["POOLS"]),
     }
 
 

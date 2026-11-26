@@ -1,4 +1,4 @@
-# The CI agents: spot VMs made from one instance template, booted from the
+# The CI agents: spot VMs made from instance templates, booted from the
 # Packer image (packer).  Nothing runs until the scaler
 # (scaler.tf) creates VMs for waiting jobs; each agent takes jobs back to
 # back, exits after 10 idle minutes and deletes its own VM.
@@ -36,12 +36,60 @@ resource "google_project_iam_member" "agent_self_delete" {
   }
 }
 
-# One template per region: a template's subnet is regional.
+# Two pools of agents, each a Buildkite queue: mufasa builds (C4D), kvm
+# boots Fluffy images (Intel, the only GCP type with nested
+# virtualization).  Both run the same image, cloud-init and service
+# account; a VM's queue comes from its template.
+locals {
+  pools = {
+    mufasa = {
+      queue            = var.buildkite_queue
+      machine_type     = var.agent_machine_type
+      min_cpu_platform = var.agent_min_cpu_platform
+      local_ssds       = var.agent_local_ssds
+      nested           = false
+      max              = var.agent_max_instances
+      template_prefix  = "fluffy-ci-agent"
+    }
+    kvm = {
+      queue            = var.kvm_queue
+      machine_type     = var.kvm_machine_type
+      min_cpu_platform = null
+      local_ssds       = 0
+      nested           = true
+      max              = var.kvm_max_instances
+      template_prefix  = "fluffy-ci-kvm"
+    }
+  }
+  # One template per pool and region: a template's subnet is regional.
+  pool_regions = {
+    for pr in setproduct(keys(local.pools), keys(var.agent_zones)) :
+    "${pr[0]}/${pr[1]}" => { pool = pr[0], region = pr[1] }
+  }
+}
+
+# The templates were one per region before the kvm pool.
+moved {
+  from = google_compute_instance_template.agent["us-east4"]
+  to   = google_compute_instance_template.agent["mufasa/us-east4"]
+}
+moved {
+  from = google_compute_instance_template.agent["us-east1"]
+  to   = google_compute_instance_template.agent["mufasa/us-east1"]
+}
+
 resource "google_compute_instance_template" "agent" {
-  for_each         = var.agent_zones
-  name_prefix      = "fluffy-ci-agent-${each.key}-"
-  machine_type     = var.agent_machine_type
-  min_cpu_platform = var.agent_min_cpu_platform
+  for_each         = local.pool_regions
+  name_prefix      = "${local.pools[each.value.pool].template_prefix}-${each.value.region}-"
+  machine_type     = local.pools[each.value.pool].machine_type
+  min_cpu_platform = local.pools[each.value.pool].min_cpu_platform
+
+  dynamic "advanced_machine_features" {
+    for_each = local.pools[each.value.pool].nested ? [1] : []
+    content {
+      enable_nested_virtualization = true
+    }
+  }
 
   # Spot: deleted when GCP takes the capacity back (Buildkite retries the
   # job elsewhere), and at the latest after agent_max_run_hours.
@@ -66,7 +114,7 @@ resource "google_compute_instance_template" "agent" {
   }
 
   dynamic "disk" {
-    for_each = range(var.agent_local_ssds)
+    for_each = range(local.pools[each.value.pool].local_ssds)
     content {
       type         = "SCRATCH"
       disk_type    = "local-ssd"
@@ -77,7 +125,7 @@ resource "google_compute_instance_template" "agent" {
   }
 
   network_interface {
-    subnetwork = google_compute_subnetwork.agents[each.key].id
+    subnetwork = google_compute_subnetwork.agents[each.value.region].id
     access_config {}
   }
 
@@ -88,7 +136,7 @@ resource "google_compute_instance_template" "agent" {
 
   metadata = {
     user-data = templatefile("${path.module}/agent-cloud-init.yaml", {
-      queue          = var.buildkite_queue
+      queue          = local.pools[each.value.pool].queue
       project        = var.project
       cache_registry = var.cache_registry
     })
@@ -98,7 +146,7 @@ resource "google_compute_instance_template" "agent" {
 
   labels = {
     fluffy-ci = "agent"
-    queue     = var.buildkite_queue
+    queue     = local.pools[each.value.pool].queue
   }
 
   lifecycle {

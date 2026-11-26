@@ -21,6 +21,16 @@ resource "buildkite_cluster_queue" "mufasa" {
   use_github_app_token = true
 }
 
+# Agents that can run VMs (Intel, nested virtualization), for steps that
+# boot a Fluffy image (agents.tf's kvm pool).
+resource "buildkite_cluster_queue" "kvm" {
+  cluster_id           = buildkite_cluster.default.id
+  key                  = var.kvm_queue
+  description          = "Agents with KVM, for boot tests"
+  retry_agent_affinity = "prefer-warmest"
+  use_github_app_token = true
+}
+
 # The mirror agent's queue (mirror/; its GCP agent is still to come).
 resource "buildkite_cluster_queue" "mirror" {
   cluster_id           = buildkite_cluster.default.id
