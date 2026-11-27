@@ -49,26 +49,8 @@ variable "buildkite_queue" {
   default     = "mufasa"
 }
 
-variable "kvm_queue" {
-  description = "The Buildkite queue of agents that can run VMs (KVM): steps that boot a Fluffy image ask for it with agents: {queue: kvm}."
-  type        = string
-  default     = "kvm"
-}
-
-variable "kvm_machine_type" {
-  description = "KVM agent VM type.  Intel: GCP exposes nested virtualization (/dev/kvm) on Intel types only; C4D's (AMD) guests see no svm."
-  type        = string
-  default     = "c4-standard-8-lssd"
-}
-
-variable "kvm_max_instances" {
-  description = "The most KVM agent VMs at once.  With 2 build agents (32 vCPUs) the project's quota is full, so one starts only once a build agent has left."
-  type        = number
-  default     = 1
-}
-
 variable "agent_max_instances" {
-  description = "The most agent VMs at once.  2 x c4d-standard-16-lssd fit the project's 32 vCPUs, one per region (C4D: 24 per region)."
+  description = "The most agent VMs at once.  2 x c4-standard-16-lssd fit the project's 32 vCPUs, one per region (C4: 24 per region)."
   type        = number
   default     = 2
 }
@@ -76,7 +58,7 @@ variable "agent_max_instances" {
 variable "agent_machine_type" {
   description = "Agent VM type.  An -lssd type brings its own local SSDs: set agent_local_ssds to 0 for one."
   type        = string
-  default     = "c4d-standard-16-lssd"
+  default     = "c4-standard-16-lssd"
 }
 
 variable "agent_min_cpu_platform" {

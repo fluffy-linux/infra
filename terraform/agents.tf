@@ -36,10 +36,12 @@ resource "google_project_iam_member" "agent_self_delete" {
   }
 }
 
-# Two pools of agents, each a Buildkite queue: mufasa builds (C4D), kvm
-# boots Fluffy images (Intel, the only GCP type with nested
-# virtualization).  Both run the same image, cloud-init and service
-# account; a VM's queue comes from its template.
+# The agents' pools, each a Buildkite queue with its own templates and cap.
+# One today: mufasa, Intel C4 with nested virtualization, so that every
+# agent both builds and boots Fluffy images (the boot test needs /dev/kvm,
+# which GCP gives only Intel types).  Until 2026-11-26 builds ran on C4D
+# (AMD) and a second pool, kvm, ran the boot test; with the project's 32
+# vCPUs full of build agents, the kvm agent could only start once one left.
 locals {
   pools = {
     mufasa = {
@@ -47,18 +49,9 @@ locals {
       machine_type     = var.agent_machine_type
       min_cpu_platform = var.agent_min_cpu_platform
       local_ssds       = var.agent_local_ssds
-      nested           = false
+      nested           = true
       max              = var.agent_max_instances
       template_prefix  = "fluffy-ci-agent"
-    }
-    kvm = {
-      queue            = var.kvm_queue
-      machine_type     = var.kvm_machine_type
-      min_cpu_platform = null
-      local_ssds       = 0
-      nested           = true
-      max              = var.kvm_max_instances
-      template_prefix  = "fluffy-ci-kvm"
     }
   }
   # One template per pool and region: a template's subnet is regional.
