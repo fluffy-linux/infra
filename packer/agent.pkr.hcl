@@ -77,6 +77,15 @@ source "googlecompute" "agent" {
   disk_type               = "pd-balanced"
   ssh_username            = "packer"
 
+  # On the CI network, which has no firewall rule but one: SSH from IAP's
+  # range to VMs tagged packer-build (terraform/main.tf).  Packer reaches its
+  # build VM through an IAP tunnel (gcloud start-iap-tunnel), as the gcloud
+  # login running it; nothing else can.
+  network    = "fluffy-ci"
+  subnetwork = "fluffy-ci-agents-us-east4"
+  tags       = ["packer-build"]
+  use_iap    = true
+
   image_name        = "fluffy-ci-agent-${local.stamp}"
   image_family      = "fluffy-ci-agent"
   image_description = "Fluffy Linux CI agent (packer)"

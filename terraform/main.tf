@@ -53,13 +53,29 @@ resource "google_secret_manager_secret" "secrets" {
 
 # --- Network ---------------------------------------------------------------
 
-# Its own network, with no firewall rules: nothing can reach the agents
-# (GCP denies all ingress without a rule); they reach out, each with its
-# own ephemeral public IP.
+# Its own network, with one firewall rule (below), none for the agents:
+# nothing can reach them (GCP denies all ingress without a rule); they
+# reach out, each with its own ephemeral public IP.
 resource "google_compute_network" "ci" {
   name                    = "fluffy-ci"
   auto_create_subnetworks = false
   depends_on              = [google_project_service.services]
+}
+
+# The one rule: SSH to Packer's build VMs (tag packer-build, which only
+# they carry), from IAP's TCP forwarding range only.  Packer reaches its
+# VM through an IAP tunnel, so only someone allowed to use IAP in the
+# project can connect.  The agents have no such tag.
+resource "google_compute_firewall" "packer_iap_ssh" {
+  name          = "fluffy-ci-packer-iap-ssh"
+  network       = google_compute_network.ci.name
+  direction     = "INGRESS"
+  source_ranges = ["35.235.240.0/20"]
+  target_tags   = ["packer-build"]
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
 }
 
 resource "google_compute_subnetwork" "agents" {
