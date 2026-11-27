@@ -14,12 +14,13 @@ apt-get -y upgrade
 # git, generate ld's and binutils' lexers), gettext and autopoint (the
 # pass1 builds of packages from git run autopoint in autoreconf, before
 # Fluffy's own gettext is built), gperf (they generate gnulib's iconv_open
-# tables, which release tarballs ship ready-made), curl, squashfs-tools
+# tables, which release tarballs ship ready-made), help2man (bison-pass1,
+# from git, writes its man page with it), curl, squashfs-tools
 # (host-build packages are packaged with the host's mksquashfs), and
 # ctypes.sh's build dependencies.
 apt-get -y install --no-install-recommends \
     autoconf automake autopoint bison build-essential bzip2 ca-certificates curl \
-    flex gawk gettext git gnupg gperf gzip libdw-dev libelf-dev libffi-dev libltdl-dev libtool m4 patch \
+    flex gawk gettext git gnupg gperf gzip help2man libdw-dev libelf-dev libffi-dev libltdl-dev libtool m4 patch \
     perl pkg-config python3 squashfs-tools texinfo xz-utils zlib1g-dev
 
 # QEMU, for steps that boot a Fluffy disk image (the kvm queue's agents,
