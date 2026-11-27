@@ -77,10 +77,17 @@ resource "github_repository" "own" {
   }
 }
 
-# No GitHub Actions anywhere in the organization: CI is Buildkite, and
-# forks must not run upstream workflows.
+# GitHub Actions only in the fluffy repository, and only its own workflows
+# (no third-party actions): the one workflow there starts a Buildkite agent
+# for one CI job of Fluffy's (the gha queue; see buildkite.tf).  The forks
+# have none, so no upstream workflow ever runs.  Until 2026-11-27 Actions
+# was off everywhere.
 resource "github_actions_organization_permissions" "org" {
-  enabled_repositories = "none"
+  enabled_repositories = "selected"
+  allowed_actions      = "local_only"
+  enabled_repositories_config {
+    repository_ids = [github_repository.own["fluffy"].repo_id]
+  }
 }
 
 # Pull requests are off too, but the provider can't set that yet (GitHub

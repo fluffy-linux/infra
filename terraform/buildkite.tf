@@ -21,6 +21,18 @@ resource "buildkite_cluster_queue" "mufasa" {
   use_github_app_token = true
 }
 
+# Agents on GitHub-hosted runners, one CI job each: the fluffy repo's
+# workflow .github/workflows/buildkite-agent.yml starts one per waiting
+# job.  Their agent token is its own, kept as that repo's Actions secret
+# (not in Terraform, which would keep its value in state).
+resource "buildkite_cluster_queue" "gha" {
+  cluster_id           = buildkite_cluster.default.id
+  key                  = "gha"
+  description          = "GitHub-hosted runners, one job each"
+  retry_agent_affinity = "prefer-warmest"
+  use_github_app_token = true
+}
+
 # The mirror agent's queue (mirror/; its GCP agent is still to come).
 resource "buildkite_cluster_queue" "mirror" {
   cluster_id           = buildkite_cluster.default.id
