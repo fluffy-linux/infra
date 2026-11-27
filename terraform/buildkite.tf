@@ -54,10 +54,15 @@ resource "buildkite_pipeline" "fluffy" {
   branch_configuration = "🐶"
   visibility           = "PUBLIC"
   allow_rebuilds       = true
+  # The upload runs where the pipeline's steps do (.buildkite/pipeline.yml's
+  # agents: queue:), the gha queue: on the default queue it started a GCP
+  # agent for a two-second job.
   steps = chomp(<<-EOT
     steps:
       - label: ":pipeline:"
         command: "buildkite-agent pipeline upload"
+        agents:
+          queue: "gha"
   EOT
   )
   provider_settings = {
