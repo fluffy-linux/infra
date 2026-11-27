@@ -90,6 +90,14 @@ resource "github_actions_organization_permissions" "org" {
   }
 }
 
+# The repository's own switch, which the organization's alone doesn't turn
+# on, with the same rule: its own workflows only.
+resource "github_actions_repository_permissions" "fluffy" {
+  repository      = github_repository.own["fluffy"].name
+  enabled         = true
+  allowed_actions = "local_only"
+}
+
 # Pull requests are off too, but the provider can't set that yet (GitHub
 # added the setting in February 2026): ../scripts/no-pull-requests does,
 # for every repository here, after an apply.
