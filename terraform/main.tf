@@ -4,6 +4,7 @@
 locals {
   services = [
     "artifactregistry",
+    "bigquery",
     "billingbudgets",
     "cloudbuild",
     "cloudfunctions",

@@ -49,3 +49,16 @@ resource "google_billing_budget" "ci" {
 data "google_project" "this" {
   project_id = var.project
 }
+
+# Where Cloud Billing exports the project's costs, for queries by service
+# and SKU.  The export itself can only be turned on in the Console
+# (Billing > Billing export > BigQuery export: standard usage cost, and
+# detailed usage cost, to project fluffy-linux, dataset fluffy_billing);
+# the Cloud Billing API has no call for it.  It records costs from then on.
+resource "google_bigquery_dataset" "billing" {
+  dataset_id    = "fluffy_billing"
+  friendly_name = "Cloud Billing export"
+  description   = "Cloud Billing's export of fluffy-linux's costs (standard and detailed usage)."
+  location      = "US"
+  depends_on    = [google_project_service.services]
+}
